@@ -8,7 +8,7 @@ Go library for current & historical exchange rates, forex & crypto currency conv
 - No authentication/token needed!
 - Select any base currency
 - 171 forex currency and 6000+ cryptocurrency!
-- No dependencies
+- No dependencies, only standard library.
 - Easy to use:
 
 ## Usage:
@@ -79,9 +79,9 @@ func main() {
 
 ### Results returned by each method:
 - ConvertTo, ConvertAt, HistoricalRatesSingle, LatestRatesSingle
-- - `big.Float`, error
+- - `float64`, error
 - LatestRatesAll, LatestRatesMultiple, HistoricalRatesAll, HistoricalRatesMultiple:
-- - `map[symbol(string)]rate(big.Float)`
+- - `map[symbol(string)]rate(float64)`
 - ForexCodes
 - - `[]string{codes}`, error
 - ForexData
@@ -102,25 +102,27 @@ func main() {
     end_rate
     change
     change_pct
-]*big.Float`, error
+]float64`, error
 - FluctuationSingle
 - - `map[
     start_rate
     end_rate
     change
     change_pct
-]*big.Float`, error
+]float64`, error
 
 - TimeseriesAll, TimeseriesMultiple
-- - `map[date]map[symbols]*big.Float`, error
+- - `map[date]map[symbols]float64`, error
 - TimeseriesSingle
-- - `map[date]map[symbol]*big.Float`, error
+- - `map[date]map[symbol]float64`, error
 
-> ## Notes:
+## Notes:
 
+- Exchange rates are refreshed every **midnight GMT**, cache results when using!
 - You can use All, Multiple, Single with all of LatestRates, HistoricalRates, Timeseries and Fluctuation.
 - Oldest date for historical rates and conversion is 1999-01-04
 - Maximum allowed timeframe for Timeseries is 365 days
+- Use [decimal](https://github.com/shopspring/decimal) to handle `float64` results with `decimal.NewFromFloat`.
 
 #### Input validation with the appropriate errors for all methods is provided to help debug
 
