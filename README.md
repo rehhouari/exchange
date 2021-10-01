@@ -28,12 +28,12 @@ func main() {
 	// Create a new Exchange instance and set USD as the base currency for the exchange rates and conversion
 	ex := exchange.New("USD")
 	// convert 10 USD to EUR
-	fmt.Println(ex.ConvertTo("EUR", 10))
+	fmt.Println(ex.ConvertTo("EUR", 10.0))
 	// You can convert between 171 fiat and +6000 cryptocurrency aswelL!
 	// convert 10 USD to BTC
-	fmt.Println(ex.ConvertTo("BTC", 10))
+	fmt.Println(ex.ConvertTo("BTC", 10.0))
 	// convert 10 USD to EUR at 2012-12-12 (date must be in the format YYYY-MM-DD)
-	fmt.Println(ex.ConvertAt("2012-12-12", "EUR", 10))
+	fmt.Println(ex.ConvertAt("2012-12-12", "EUR", 10.0))
 
 	// Get the available forex/fiat codes ([]string)
 	forexCodes, _ := ex.ForexCodes()
