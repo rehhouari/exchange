@@ -3,7 +3,6 @@ package exchange
 import (
 	"encoding/json"
 	"errors"
-	"github.com/shopspring/decimal"
 	"net/http"
 	"regexp"
 	"sort"
@@ -39,7 +38,6 @@ const (
 	historicalURL       string = baseURL + "/"
 	timeseriesURL       string = baseURL + "/timeseries"
 	fluctuationURL      string = baseURL + "/fluctuation"
-	sourcesURL          string = baseURL + "/sources"
 )
 
 // Exchange is returned by New() and allows access to the methods
@@ -188,8 +186,8 @@ func processQuery(req *http.Request, q query) error {
 		addToQuery(req, "to", q.To)
 	}
 
-	if q.Amount > 1 {
-		addToQuery(req, "amount", strconv.Itoa(q.Amount))
+	if q.Amount > 1.0 {
+		addToQuery(req, "amount", strconv.FormatFloat(q.Amount, 'f', -1, 64))
 	}
 
 	if len(q.Symbols) != 0 {
@@ -235,22 +233,6 @@ func (exchange *Exchange) apiSymbols() (map[string]map[string]string, error) {
 	return result, nil
 }
 
-func (exchange *Exchange) apiSource() (map[string]map[string]string, error) {
-	resp, err := exchange.get(sourcesURL, query{})
-	if err != nil {
-		return nil, err
-	}
-	result := make(map[string]map[string]string)
-	for code, data := range resp["sources"].(map[string]interface{}) {
-		values := make(map[string]string)
-		for name, value := range data.(map[string]interface{}) {
-			values[name] = value.(string)
-		}
-		result[code] = values
-	}
-	return result, nil
-}
-
 func (exchange *Exchange) apiCryptocurrencies() (map[string]map[string]string, error) {
 	resp, err := exchange.get(cryptocurrenciesURL, query{})
 	if err != nil {
@@ -267,29 +249,29 @@ func (exchange *Exchange) apiCryptocurrencies() (map[string]map[string]string, e
 	return result, nil
 }
 
-func (exchange *Exchange) apiLatest(q query) (map[string]*decimal.Decimal, error) {
+func (exchange *Exchange) apiLatest(q query) (map[string]float64, error) {
 	resp, err := exchange.get(latestURL, q)
 	if err != nil {
 		return nil, err
 	}
 	result := resp["rates"].(map[string]interface{})
-	rates := make(map[string]*decimal.Decimal, len(result))
+	rates := make(map[string]float64, len(result))
 	for key := range result {
-		rates[key] = decimal.NewFromFloat(result[key].(float64))
+		rates[key] = result[key].(float64)
 	}
 	return rates, nil
 }
 
-func (exchange *Exchange) apiConvert(q query) (*decimal.Decimal, error) {
+func (exchange *Exchange) apiConvert(q query) (float64, error) {
 	resp, err := exchange.get(convertURL, q)
 	if err != nil {
-		return nil, err
+		return 0.0, err
 	}
 	result := resp["result"].(float64)
-	return decimal.NewFromFloat(result), nil
+	return result, nil
 }
 
-func (exchange *Exchange) apiHistorical(q query) (map[string]*big.Float, error) {
+func (exchange *Exchange) apiHistorical(q query) (map[string]float64, error) {
 	if err := ValidateDate(q.Date); err != nil {
 		return nil, err
 	}
@@ -300,23 +282,23 @@ func (exchange *Exchange) apiHistorical(q query) (map[string]*big.Float, error) 
 		return nil, err
 	}
 	result := resp["rates"].(map[string]interface{})
-	rates := make(map[string]*big.Float, len(result))
+	rates := make(map[string]float64, len(result))
 	for key := range result {
-		rates[key] = big.NewFloat(result[key].(float64))
+		rates[key] = result[key].(float64)
 	}
 	return rates, nil
 }
 
-func (exchange *Exchange) apiTimeseriesAndFuctuation(url string, q query) (map[string]map[string]*big.Float, error) {
+func (exchange *Exchange) apiTimeseriesAndFuctuation(url string, q query) (map[string]map[string]float64, error) {
 	resp, err := exchange.get(url, q)
 	if err != nil {
 		return nil, err
 	}
-	result := make(map[string]map[string]*big.Float)
+	result := make(map[string]map[string]float64)
 	for date, rates := range resp["rates"].(map[string]interface{}) {
-		ratemap := make(map[string]*big.Float)
+		ratemap := make(map[string]float64)
 		for symbol, rate := range rates.(map[string]interface{}) {
-			frate := big.NewFloat(rate.(float64))
+			frate := rate.(float64)
 			ratemap[symbol] = frate
 			result[date] = ratemap
 		}
@@ -368,24 +350,89 @@ func (exchange *Exchange) CryptoData() (map[string]map[string]string, error) {
 	return exchange.apiCryptocurrencies()
 }
 
-// Sources returns and array of supported sources
-func (exchange *Exchange) Sources() ([]string, error) {
-	var codes []string
-
-	result, err := exchange.apiSources()
-	if err != nil {
-		return nil, err
-	}
-
-	for k := range result {
-		codes = append(codes, k)
-	}
-
-	sort.Strings(codes)
-	return codes, nil
+// LatestRatesAll returns the latest exchange rates for all supportedcurrencies
+func (exchange *Exchange) LatestRatesAll() (map[string]float64, error) {
+	return exchange.apiLatest(query{Base: exchange.Base})
 }
 
-// SourcesData returns a map of supported forex/fiat currencies data (code & description)
-func (exchange *Exchange) SourcesData() (map[string]map[string]string, error) {
-	return exchange.apiSources()
+// LatestRatesMultiple returns the latest exchange rates for multiple currencies
+func (exchange *Exchange) LatestRatesMultiple(symbols []string) (map[string]float64, error) {
+	return exchange.apiLatest(query{Base: exchange.Base, Symbols: symbols})
+
+}
+
+// LatestRatesSingle returns the latest exchange rates for a single currencies
+func (exchange *Exchange) LatestRatesSingle(symbol string) (float64, error) {
+	resp, err := exchange.apiLatest(query{Base: exchange.Base, Symbols: []string{symbol}})
+	if err != nil {
+		return 0.0, err
+	}
+	return resp[symbol], nil
+}
+
+// ConvertTo converts the amount from the exchange.Base currency to the target currency
+func (exchange *Exchange) ConvertTo(target string, amount float64) (float64, error) {
+	return exchange.apiConvert(query{From: exchange.Base, To: target, Amount: amount})
+}
+
+// ConvertAt converts the amount from the exchange.Base currency to the target currency
+// at a selected historical date
+func (exchange *Exchange) ConvertAt(date string, target string, amount float64) (float64, error) {
+	return exchange.apiConvert(query{From: exchange.Base, To: target, Amount: amount, Date: date})
+}
+
+// HistoricalRatesAll returns the historical exchange rates for all supported currencies
+func (exchange *Exchange) HistoricalRatesAll(date string) (map[string]float64, error) {
+	return exchange.apiHistorical(query{Base: exchange.Base, Date: date})
+}
+
+// HistoricalRatesMultiple returns the historical exchange rates for multiple currencies
+func (exchange *Exchange) HistoricalRatesMultiple(date string, symbols []string) (map[string]float64, error) {
+	return exchange.apiHistorical(query{Base: exchange.Base, Symbols: symbols, Date: date})
+
+}
+
+// HistoricalRatesSingle returns the historical exchange rates for a single currency
+func (exchange *Exchange) HistoricalRatesSingle(date string, symbol string) (float64, error) {
+	resp, err := exchange.apiHistorical(query{Base: exchange.Base, Symbols: []string{symbol}, Date: date})
+	if err != nil {
+		return 0.0, err
+	}
+	return resp[symbol], nil
+}
+
+// TimeseriesAll returns the timeseries for all supported symbols
+func (exchange *Exchange) TimeseriesAll(start string, end string) (map[string]map[string]float64, error) {
+	resp, err := exchange.apiTimeseriesAndFuctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}})
+	return resp, err
+}
+
+// TimeseriesMultiple returns the timeseries for multiple symbols
+func (exchange *Exchange) TimeseriesMultiple(start string, end string, symbols []string) (map[string]map[string]float64, error) {
+	resp, err := exchange.apiTimeseriesAndFuctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}, Symbols: symbols})
+	return resp, err
+}
+
+// TimeseriesSingle returns the timeseries for a single symbol<
+func (exchange *Exchange) TimeseriesSingle(start string, end string, symbol string) (map[string]map[string]float64, error) {
+	resp, err := exchange.apiTimeseriesAndFuctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}, Symbols: []string{symbol}})
+	return resp, err
+}
+
+// FluctuationAll returns the fluctuation for all supported symbols
+func (exchange *Exchange) FluctuationAll(start string, end string) (map[string]map[string]float64, error) {
+	resp, err := exchange.apiTimeseriesAndFuctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}})
+	return resp, err
+}
+
+// FluctuationMultiple returns the fluctuation for multiple symbols
+func (exchange *Exchange) FluctuationMultiple(start string, end string, symbols []string) (map[string]map[string]float64, error) {
+	resp, err := exchange.apiTimeseriesAndFuctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}, Symbols: symbols})
+	return resp, err
+}
+
+// FluctuationSingle returns the fluctuation for a single symbol
+func (exchange *Exchange) FluctuationSingle(start string, end string, symbol string) (map[string]float64, error) {
+	resp, err := exchange.apiTimeseriesAndFuctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}, Symbols: []string{symbol}})
+	return resp[symbol], err
 }

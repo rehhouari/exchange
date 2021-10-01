@@ -1,3 +1,3 @@
 module github.com/rehhouari/exchange
 
-require github.com/shopspring/decimal v1.2.0
+go 1.17
