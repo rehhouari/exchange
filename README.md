@@ -15,8 +15,7 @@ Go library for current & historical exchange rates, forex & crypto currency conv
 
 > #### `go get -u github.com/rehhouari/exchange` 
 
-```go
-package main
+```gopackage main
 
 import (
 	"fmt"
@@ -35,19 +34,22 @@ func main() {
 	// convert 10 USD to EUR at 2012-12-12 (date must be in the format YYYY-MM-DD)
 	fmt.Println(ex.ConvertAt("2012-12-12", "EUR", 10.0))
 
-	// Get the available forex/fiat codes ([]string)
-	forexCodes, _ := ex.ForexCodes()
-	
 	// Get the available crypto codes ([]string)
 	// Warning: +6000
 	cryptoCodes, _ := ex.CryptoCodes()
-
-	// Get the forex codes data, includes code and description.
-	forexData, _ := ex.ForexData()
+	fmt.Println(cryptoCodes)
 
 	// Get the crypto codes data, includes code and description.
 	// Warning: +6000
 	cryptoData, _ := ex.CryptoData()
+
+	// Get the available forex/fiat codes ([]string)
+	forexCodes, _ := ex.ForexCodes()
+
+	// Get the forex codes data, includes code and description.
+	forexData, _ := ex.ForexData()
+
+	fmt.Println(cryptoData["BTC"]["code"])
 
 	// loop through the forex cpdes
 	for _, code := range forexCodes {
