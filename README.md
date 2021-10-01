@@ -15,7 +15,8 @@ Go library for current & historical exchange rates, forex & crypto currency conv
 
 > #### `go get -u github.com/rehhouari/exchange` 
 
-```gopackage main
+```go
+package main
 
 import (
 	"fmt"
