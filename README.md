@@ -78,32 +78,32 @@ func main() {
 ```
 
 ### Results returned by each method:
-- ConvertTo, ConvertAt, HistoricalRatesSingle, LatestRatesSingle
+- **ConvertTo**, **ConvertAt**, **HistoricalRatesSingle**, **LatestRatesSingle**
 - - `float64`, error
-- LatestRatesAll, LatestRatesMultiple, HistoricalRatesAll, HistoricalRatesMultiple:
+- **LatestRatesAll**, **LatestRatesMultiple**, **HistoricalRatesAll**, **HistoricalRatesMultiple**:
 - - `map[symbol(string)]rate(float64)`
-- ForexCodes
+- **ForexCodes**
 - - `[]string{codes}`, error
-- ForexData
+- **ForexData**
 - - `map[symbol]map[
     code
     description
 ]string`, error
-- CryptoCodes
+- **CryptoCodes**
 - - `[]string{codes}`, error
-- CryptoData
+- **CryptoData**
 - - `map[symbol]map[
     symbol
     name
 ]string`, error
-- FluctuationAll, FluctuationMultiple,
+- **FluctuationAll**, FluctuationMultiple,
 - - `map[symbol]map[
     start_rate
     end_rate
     change
     change_pct
 ]float64`, error
-- FluctuationSingle
+- **FluctuationSingle**
 - - `map[
     start_rate
     end_rate
@@ -111,9 +111,9 @@ func main() {
     change_pct
 ]float64`, error
 
-- TimeseriesAll, TimeseriesMultiple
+- **TimeseriesAll**, **TimeseriesMultiple**
 - - `map[date]map[symbols]float64`, error
-- TimeseriesSingle
+- **TimeseriesSingle**
 - - `map[date]map[symbol]float64`, error
 
 ## Notes:
