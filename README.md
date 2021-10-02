@@ -11,6 +11,10 @@ Go library for current & historical exchange rates, forex & crypto currency conv
 - No dependencies, only standard library.
 - Easy to use:
 
+> ** differences from [asvvvad/exchange](https://github.com/asvvvad1/exchange)**:
+- no built-in caching, do it yourself
+- changed return types from `big.Float` to `float64` and the second argument's type for `ConvertTo()` from `int` to `float64`
+
 ## Usage:
 
 > #### `go get -u github.com/rehhouari/exchange` 
