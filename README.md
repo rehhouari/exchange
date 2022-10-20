@@ -1,9 +1,13 @@
 # exchange
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/rehhouari/exchange)](https://goreportcard.com/report/github.com/rehhouari/exchange)
 
-Go library for current & historical exchange rates, forex & crypto currency conversion, fluctuation, and timeseries using the new [Free foreign exchange rates API](https://exchangerate.host/#/) by [arzzen](https://github.com/arzzen/) ([github](https://github.com/arzzen/exchangerate.host))
+Go library for current & historical exchange rates, forex & cryptocurrency conversion, fluctuation, and timeseries
+using the new [Free foreign exchange rates API](https://exchangerate.host/#/) by [arzzen](https://github.com/arzzen/)
+([GitHub](https://github.com/arzzen/exchangerate.host))
 
 ## Features:
+
 - Currency conversion, historical & current exchange rates, timeseries and fluctuations
 - No authentication/token needed!
 - Select any base currency
@@ -12,12 +16,13 @@ Go library for current & historical exchange rates, forex & crypto currency conv
 - Easy to use:
 
 > **differences from [asvvvad/exchange](https://github.com/asvvvad1/exchange)**:
+
 - no built-in caching, do it yourself
 - changed return types from `big.Float` to `float64` and the second argument's type for `ConvertTo()` from `int` to `float64`
 
 ## Usage:
 
-> #### `go get -u github.com/rehhouari/exchange` 
+> #### `go get -u github.com/rehhouari/exchange`
 
 ```go
 package main
@@ -33,30 +38,30 @@ func main() {
 	ex := exchange.New("USD")
 	// convert 10 USD to EUR
 	fmt.Println(ex.ConvertTo("EUR", 10.0))
-	// You can convert between 171 fiat and +6000 cryptocurrency aswelL!
+
+	// You can convert between 171 fiat and +6000 cryptocurrency as well!
 	// convert 10 USD to BTC
 	fmt.Println(ex.ConvertTo("BTC", 10.0))
 	// convert 10 USD to EUR at 2012-12-12 (date must be in the format YYYY-MM-DD)
 	fmt.Println(ex.ConvertAt("2012-12-12", "EUR", 10.0))
+
+	// Get the available forex/fiat codes ([]string)
+	forexCodes, _ := ex.ForexCodes()
 
 	// Get the available crypto codes ([]string)
 	// Warning: +6000
 	cryptoCodes, _ := ex.CryptoCodes()
 	fmt.Println(cryptoCodes)
 
-	// Get the crypto codes data, includes code and description.
-	// Warning: +6000
-	cryptoData, _ := ex.CryptoData()
-
-	// Get the available forex/fiat codes ([]string)
-	forexCodes, _ := ex.ForexCodes()
-
 	// Get the forex codes data, includes code and description.
 	forexData, _ := ex.ForexData()
 
+	// Get the crypto codes data, includes code and description.
+	// Warning: +6000
+	cryptoData, _ := ex.CryptoData()
 	fmt.Println(cryptoData["BTC"]["code"])
 
-	// loop through the forex cpdes
+	// loop through the forex codes
 	for _, code := range forexCodes {
 		// print the forex codes data in the format: USD: US Dollar
 		fmt.Println(code+":", forexData[code]["description"])
@@ -65,6 +70,7 @@ func main() {
 	// Change the base currency to euro
 	ex.SetBase("EUR")
 	// Get the latest exchange rates with all currencies (Base is EUR)
+	// exchangerate.host update them at midnight GMT so make sure to cache it till next day
 	fmt.Println(ex.LatestRatesAll())
 
 	// Get the latest rates with multiple currencies, not all (USD and JPY only)
@@ -81,10 +87,10 @@ func main() {
 	// Print the change
 	fmt.Println(fluctuation["change"])
 }
-
 ```
 
 ### Results returned by each method:
+
 - **ConvertTo**, **ConvertAt**, **HistoricalRatesSingle**, **LatestRatesSingle**
 - - `float64`, error
 - **LatestRatesAll**, **LatestRatesMultiple**, **HistoricalRatesAll**, **HistoricalRatesMultiple**:
@@ -92,31 +98,15 @@ func main() {
 - **ForexCodes**
 - - `[]string{codes}`, error
 - **ForexData**
-- - `map[symbol]map[
-    code
-    description
-]string`, error
+- - `map[symbol]map[ code description ]string`, error
 - **CryptoCodes**
 - - `[]string{codes}`, error
 - **CryptoData**
-- - `map[symbol]map[
-    symbol
-    name
-]string`, error
+- - `map[symbol]map[ symbol name ]string`, error
 - **FluctuationAll**, FluctuationMultiple,
-- - `map[symbol]map[
-    start_rate
-    end_rate
-    change
-    change_pct
-]float64`, error
+- - `map[symbol]map[ start_rate end_rate change change_pct ]float64`, error
 - **FluctuationSingle**
-- - `map[
-    start_rate
-    end_rate
-    change
-    change_pct
-]float64`, error
+- - `map[ start_rate end_rate change change_pct ]float64`, error
 
 - **TimeseriesAll**, **TimeseriesMultiple**
 - - `map[date]map[symbols]float64`, error
@@ -134,4 +124,7 @@ func main() {
 #### Input validation with the appropriate errors for all methods is provided to help debug
 
 #### Any help and contribution is welcome!
-This is my first Go library and I had trouble with JSON parsing (and I still do, didn't use bitly/simplejson to reduce dependencies) Theres a lot of room for improvement
+
+This is my first Go library and I had trouble with JSON parsing
+(and I still do, didn't use `bitly/simplejson` to reduce dependencies).
+There's a lot of room for improvement.

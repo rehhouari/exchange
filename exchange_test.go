@@ -11,7 +11,7 @@ func TestExchange(t *testing.T) {
 	// convert 10 USD to EUR
 	fmt.Println(ex.ConvertTo("EUR", 10.0))
 
-	// You can convert between 171 fiat and +6000 cryptocurrency aswelL!
+	// You can convert between 171 fiat and +6000 cryptocurrency as well!
 	// convert 10 USD to BTC
 	fmt.Println(ex.ConvertTo("BTC", 10.0))
 	// convert 10 USD to EUR at 2012-12-12 (date must be in the format YYYY-MM-DD)
@@ -33,7 +33,7 @@ func TestExchange(t *testing.T) {
 	cryptoData, _ := ex.CryptoData()
 	fmt.Println(cryptoData["BTC"]["code"])
 
-	// loop through the forex cpdes
+	// loop through the forex codes
 	for _, code := range forexCodes {
 		// print the forex codes data in the format: USD: US Dollar
 		fmt.Println(code+":", forexData[code]["description"])
