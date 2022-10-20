@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2022-10-20
+
 ### Added
 
 - Added `func (exchange *Exchange) SetContext(context context.Context)` to allow passing of context to
