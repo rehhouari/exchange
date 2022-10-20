@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -12,37 +13,38 @@ import (
 )
 
 // ErrInvalidCode is returned when the currency code is invalid
-var ErrInvalidCode = errors.New("Invalid currency code")
+var ErrInvalidCode = errors.New("invalid currency code")
 
 // ErrInvalidDate is returned when the date is too old
-var ErrInvalidDate = errors.New("Oldest possible date is 1999-01-04")
+var ErrInvalidDate = errors.New("oldest possible date is 1999-01-04")
 
 // ErrInvalidDateFormat is returned when the date isn't formatted as YYYY-MM-DD
-var ErrInvalidDateFormat = errors.New("Date format must be YYYY-MM-DD")
+var ErrInvalidDateFormat = errors.New("date format must be YYYY-MM-DD")
 
 // ErrTimeframeExceeded is returned when the time between start_date and end_date is bigger than 365 days
-var ErrTimeframeExceeded = errors.New("Maximum allowed timeframe is 365 days")
+var ErrTimeframeExceeded = errors.New("maximum allowed timeframe is 365 days")
 
 // ErrInvalidTimeFrame is returned when the to date is older than to date. For example flipped the arguments
-var ErrInvalidTimeFrame = errors.New("From date must be older than To date")
+var ErrInvalidTimeFrame = errors.New("\"from\" date must be older than \"to\" date")
 
 // ErrInvalidAPIResponse is returned when the API return success: false
-var ErrInvalidAPIResponse = errors.New("Unknown API error")
+var ErrInvalidAPIResponse = errors.New("unknown API error")
 
 const (
 	baseURL             string = "https://api.exchangerate.host"
-	symbolsURL          string = baseURL + "/symbols"
-	cryptocurrenciesURL string = baseURL + "/cryptocurrencies"
-	latestURL           string = baseURL + "/latest"
-	convertURL          string = baseURL + "/convert"
-	historicalURL       string = baseURL + "/"
-	timeseriesURL       string = baseURL + "/timeseries"
-	fluctuationURL      string = baseURL + "/fluctuation"
+	symbolsURL                 = baseURL + "/symbols"
+	cryptocurrenciesURL        = baseURL + "/cryptocurrencies"
+	latestURL                  = baseURL + "/latest"
+	convertURL                 = baseURL + "/convert"
+	historicalURL              = baseURL + "/"
+	timeseriesURL              = baseURL + "/timeseries"
+	fluctuationURL             = baseURL + "/fluctuation"
 )
 
 // Exchange is returned by New() and allows access to the methods
 type Exchange struct {
 	Base          string
+	Context       context.Context
 	isInitialized bool // is set to true if used via New
 }
 
@@ -56,7 +58,7 @@ type query struct {
 	TimeFrame [2]string
 }
 
-var client http.Client = http.Client{}
+var client = http.Client{}
 
 // New creates a new instance of Exchange
 func New(base string) *Exchange {
@@ -74,6 +76,11 @@ func (exchange *Exchange) SetBase(base string) error {
 	}
 	exchange.Base = base
 	return nil
+}
+
+// SetContext sets a new context to be used in HTTP requests
+func (exchange *Exchange) SetContext(context context.Context) {
+	exchange.Context = context
 }
 
 // ValidateCode validates a single symbol code
@@ -97,7 +104,7 @@ func ValidateSymbols(symbols []string) error {
 
 // ValidateDate validates date string according to YYYY-MM-DD format and if it's
 func ValidateDate(date string) error {
-	matched, err := regexp.Match("[0-9]{4,4}-((0[1-9])|(1[0-2]))-([0-3]{1}[0-9]{1})", []byte(date))
+	matched, err := regexp.Match("[0-9]{4}-((0[1-9])|(1[0-2]))-([0-3][0-9])", []byte(date))
 	if err != nil {
 		return err
 	}
@@ -112,7 +119,7 @@ func ValidateDate(date string) error {
 	return nil
 }
 
-// ValidateTimeFrame checks if the from and to date are not more than 365 days apart and they're not mixed
+// ValidateTimeFrame checks if the "from" and "to" date are not more than 365 days apart, and they're not mixed
 func ValidateTimeFrame(TimeFrame [2]string) error {
 	from, _ := time.Parse("2006-01-02", TimeFrame[0])
 	to, _ := time.Parse("2006-01-02", TimeFrame[1])
@@ -128,15 +135,24 @@ func ValidateTimeFrame(TimeFrame [2]string) error {
 }
 
 func (exchange *Exchange) get(url string, q query) (map[string]interface{}, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	var req *http.Request
+	var err error
+
+	if exchange.Context != nil {
+		req, err = http.NewRequestWithContext(exchange.Context, "GET", url, nil)
+	} else {
+		req, err = http.NewRequest("GET", url, nil)
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	processQuery(req, q)
+	err = processQuery(req, q)
+	if err != nil {
+		return nil, err
+	}
 
 	resp, err := client.Do(req)
-
 	if err != nil {
 		return nil, err
 	}
@@ -144,13 +160,11 @@ func (exchange *Exchange) get(url string, q query) (map[string]interface{}, erro
 	var result map[string]interface{}
 
 	err = json.NewDecoder(resp.Body).Decode(&result)
-
 	if err != nil {
 		return nil, err
 	}
 
 	success := result["success"]
-
 	if !success.(bool) {
 		return nil, ErrInvalidAPIResponse
 	}
@@ -191,6 +205,9 @@ func processQuery(req *http.Request, q query) error {
 	}
 
 	if len(q.Symbols) != 0 {
+		if err := ValidateSymbols(q.Symbols); err != nil {
+			return err
+		}
 		addToQuery(req, "symbols", strings.Join(q.Symbols, ","))
 	}
 
@@ -210,8 +227,8 @@ func processQuery(req *http.Request, q query) error {
 		if err := ValidateTimeFrame(q.TimeFrame); err != nil {
 			return err
 		}
-		addToQuery(req, "start_date", string(q.TimeFrame[0]))
-		addToQuery(req, "end_date", string(q.TimeFrame[1]))
+		addToQuery(req, "start_date", q.TimeFrame[0])
+		addToQuery(req, "end_date", q.TimeFrame[1])
 	}
 
 	return nil
@@ -289,7 +306,7 @@ func (exchange *Exchange) apiHistorical(q query) (map[string]float64, error) {
 	return rates, nil
 }
 
-func (exchange *Exchange) apiTimeseriesAndFuctuation(url string, q query) (map[string]map[string]float64, error) {
+func (exchange *Exchange) apiTimeseriesAndFluctuation(url string, q query) (map[string]map[string]float64, error) {
 	resp, err := exchange.get(url, q)
 	if err != nil {
 		return nil, err
@@ -350,7 +367,7 @@ func (exchange *Exchange) CryptoData() (map[string]map[string]string, error) {
 	return exchange.apiCryptocurrencies()
 }
 
-// LatestRatesAll returns the latest exchange rates for all supportedcurrencies
+// LatestRatesAll returns the latest exchange rates for all supported currencies
 func (exchange *Exchange) LatestRatesAll() (map[string]float64, error) {
 	return exchange.apiLatest(query{Base: exchange.Base})
 }
@@ -403,36 +420,36 @@ func (exchange *Exchange) HistoricalRatesSingle(date string, symbol string) (flo
 
 // TimeseriesAll returns the timeseries for all supported symbols
 func (exchange *Exchange) TimeseriesAll(start string, end string) (map[string]map[string]float64, error) {
-	resp, err := exchange.apiTimeseriesAndFuctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}})
+	resp, err := exchange.apiTimeseriesAndFluctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}})
 	return resp, err
 }
 
 // TimeseriesMultiple returns the timeseries for multiple symbols
 func (exchange *Exchange) TimeseriesMultiple(start string, end string, symbols []string) (map[string]map[string]float64, error) {
-	resp, err := exchange.apiTimeseriesAndFuctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}, Symbols: symbols})
+	resp, err := exchange.apiTimeseriesAndFluctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}, Symbols: symbols})
 	return resp, err
 }
 
 // TimeseriesSingle returns the timeseries for a single symbol<
 func (exchange *Exchange) TimeseriesSingle(start string, end string, symbol string) (map[string]map[string]float64, error) {
-	resp, err := exchange.apiTimeseriesAndFuctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}, Symbols: []string{symbol}})
+	resp, err := exchange.apiTimeseriesAndFluctuation(timeseriesURL, query{TimeFrame: [2]string{start, end}, Symbols: []string{symbol}})
 	return resp, err
 }
 
 // FluctuationAll returns the fluctuation for all supported symbols
 func (exchange *Exchange) FluctuationAll(start string, end string) (map[string]map[string]float64, error) {
-	resp, err := exchange.apiTimeseriesAndFuctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}})
+	resp, err := exchange.apiTimeseriesAndFluctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}})
 	return resp, err
 }
 
 // FluctuationMultiple returns the fluctuation for multiple symbols
 func (exchange *Exchange) FluctuationMultiple(start string, end string, symbols []string) (map[string]map[string]float64, error) {
-	resp, err := exchange.apiTimeseriesAndFuctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}, Symbols: symbols})
+	resp, err := exchange.apiTimeseriesAndFluctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}, Symbols: symbols})
 	return resp, err
 }
 
 // FluctuationSingle returns the fluctuation for a single symbol
 func (exchange *Exchange) FluctuationSingle(start string, end string, symbol string) (map[string]float64, error) {
-	resp, err := exchange.apiTimeseriesAndFuctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}, Symbols: []string{symbol}})
+	resp, err := exchange.apiTimeseriesAndFluctuation(fluctuationURL, query{TimeFrame: [2]string{start, end}, Symbols: []string{symbol}})
 	return resp[symbol], err
 }
