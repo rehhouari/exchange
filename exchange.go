@@ -1,6 +1,7 @@
 package exchange
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -43,6 +44,7 @@ const (
 // Exchange is returned by New() and allows access to the methods
 type Exchange struct {
 	Base          string
+	Context       context.Context
 	isInitialized bool // is set to true if used via New
 }
 
@@ -74,6 +76,11 @@ func (exchange *Exchange) SetBase(base string) error {
 	}
 	exchange.Base = base
 	return nil
+}
+
+// SetContext sets a new context to be used in HTTP requests
+func (exchange *Exchange) SetContext(context context.Context) {
+	exchange.Context = context
 }
 
 // ValidateCode validates a single symbol code
@@ -128,7 +135,14 @@ func ValidateTimeFrame(TimeFrame [2]string) error {
 }
 
 func (exchange *Exchange) get(url string, q query) (map[string]interface{}, error) {
-	req, err := http.NewRequest("GET", url, nil)
+	var req *http.Request
+	var err error
+
+	if exchange.Context != nil {
+		req, err = http.NewRequestWithContext(exchange.Context, "GET", url, nil)
+	} else {
+		req, err = http.NewRequest("GET", url, nil)
+	}
 	if err != nil {
 		return nil, err
 	}

@@ -2,10 +2,9 @@ package exchange
 
 import (
 	"fmt"
-	"testing"
 )
 
-func TestExchange(t *testing.T) {
+func ExampleExchange() {
 	// Create a new Exchange instance and set USD as the base currency for the exchange rates and conversion
 	ex := New("USD")
 	// convert 10 USD to EUR

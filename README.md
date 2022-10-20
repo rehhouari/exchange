@@ -8,17 +8,19 @@ using the new [Free foreign exchange rates API](https://exchangerate.host/#/) by
 
 ## Features:
 
-- Currency conversion, historical & current exchange rates, timeseries and fluctuations
+- Currency conversion, historical & current exchange rates, timeseries and fluctuations.
 - No authentication/token needed!
-- Select any base currency
+- Select any base currency.
 - 171 forex currency and 6000+ cryptocurrency!
 - No dependencies, only standard library.
-- Easy to use:
+- Easy to use.
 
-> **differences from [asvvvad/exchange](https://github.com/asvvvad1/exchange)**:
+> **Upgrading from [asvvvad/exchange](https://github.com/asvvvad1/exchange) to version 1.0.0
+> (for further upgrading please view [CHANGELOG.md](CHANGELOG.md))**:
 
 - no built-in caching, do it yourself
-- changed return types from `big.Float` to `float64` and the second argument's type for `ConvertTo()` from `int` to `float64`
+- changed return types from `big.Float` to `float64`
+  and the second argument's type for `ConvertTo()` from `int` to `float64`
 
 ## Usage:
 
