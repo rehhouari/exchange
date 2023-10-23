@@ -1,5 +1,8 @@
 # exchange
 
+> Service is dead, see https://github.com/Formicka/exchangerate.host/issues/245
+
+
 [![Go Report Card](https://goreportcard.com/badge/github.com/rehhouari/exchange)](https://goreportcard.com/report/github.com/rehhouari/exchange)
 
 Go library for current & historical exchange rates, forex & cryptocurrency conversion, fluctuation, and timeseries
